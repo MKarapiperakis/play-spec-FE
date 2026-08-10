@@ -126,5 +126,10 @@
     }
   html {
     @apply font-sans;
+    /* Always reserve the scrollbar's width, whether or not a given page
+       actually needs to scroll — otherwise centered content (like the nav
+       bar) shifts sideways by the scrollbar's width between pages that
+       scroll and pages that don't. */
+    scrollbar-gutter: stable;
     }
 }
