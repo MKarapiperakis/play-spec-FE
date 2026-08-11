@@ -4,6 +4,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { AlertCircle, CheckCircle2, Info, TriangleAlert } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 const SEVERITY_BADGE: Record<Severity, { variant: 'default' | 'secondary' | 'destructive'; label: string }> = {
   good: { variant: 'default', label: 'Good' },
@@ -95,9 +96,18 @@ export function ValidationReport({ result }: { result: ValidateResult }) {
         <span className="text-sm">
           Score: <span className="font-semibold">{result.score}/100</span>
         </span>
-        <span className="text-muted-foreground text-sm">
-          {result.canGenerate ? 'Can generate' : 'Cannot generate'}
-        </span>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="text-muted-foreground cursor-default text-sm underline decoration-dotted underline-offset-4">
+              {result.canGenerate ? 'Can generate' : 'Not recommended to generate'}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>
+            {result.canGenerate
+              ? 'No blocking errors were found — generated tests should run without structural issues.'
+              : 'Blocking errors were found in this spec. You can still generate a test project, but expect broken or incomplete tests until the errors above are fixed.'}
+          </TooltipContent>
+        </Tooltip>
       </div>
 
       {result.categories ? (

@@ -1,12 +1,23 @@
-import { useQuery } from '@tanstack/react-query'
-import { getQueueStats } from '@/lib/api'
+import { useEffect, useState } from 'react'
+import { API_BASE_URL } from '@/lib/api'
+import type { QueueStats } from '@/lib/types'
 
-const REFRESH_MS = 5000
-
+/**
+ * Live queue stats pushed over Server-Sent Events (GET /queue/events) rather
+ * than polled — the backend already knows the exact moment the numbers
+ * change (see generateQueue.js), so there's no reason to keep asking on a
+ * timer. EventSource reconnects on its own if the connection drops.
+ */
 export function useQueueStats() {
-  return useQuery({
-    queryKey: ['queue-stats'],
-    queryFn: getQueueStats,
-    refetchInterval: REFRESH_MS,
-  })
+  const [data, setData] = useState<QueueStats | undefined>(undefined)
+
+  useEffect(() => {
+    const source = new EventSource(`${API_BASE_URL}/queue/events`)
+    source.onmessage = (event) => {
+      setData(JSON.parse(event.data))
+    }
+    return () => source.close()
+  }, [])
+
+  return { data }
 }

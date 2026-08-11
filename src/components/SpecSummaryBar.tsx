@@ -5,7 +5,7 @@ import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import { EndpointsByMethod } from '@/components/EndpointsByMethod'
 import { IconChip } from '@/components/IconChip'
-import { Cog, FileText, GitBranch, Share2, ShieldCheck, Tag } from 'lucide-react'
+import { FileText, GitBranch, Share2, ShieldCheck, Tag } from 'lucide-react'
 
 function StatItem({ icon, iconClassName, label, value }: { icon: ReactNode; iconClassName: string; label: string; value: ReactNode }) {
   return (
@@ -54,7 +54,7 @@ export function SpecSummaryBar({ summary }: { summary: ValidationSummary }) {
   return (
     <Card>
       <CardContent className="flex flex-col gap-4">
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
           <StatItem
             icon={<FileText />}
             iconClassName="bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400"
@@ -72,12 +72,6 @@ export function SpecSummaryBar({ summary }: { summary: ValidationSummary }) {
             iconClassName="bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-400"
             label="Paths"
             value={summary.pathCount}
-          />
-          <StatItem
-            icon={<Cog />}
-            iconClassName="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400"
-            label="Operations"
-            value={summary.operationCount}
           />
           <StatItem
             icon={<ShieldCheck />}
