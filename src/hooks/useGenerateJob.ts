@@ -38,10 +38,19 @@ export function useGenerateJob() {
 
   const reset = () => setJobId(null)
 
+  // True only while a job is genuinely in flight server-side — the POST
+  // itself, or a job whose status hasn't resolved yet or is still
+  // "pending". Deliberately NOT just "a jobId exists": once a job reaches
+  // done/failed/not-found, there's no reason to keep blocking a new
+  // Generate click waiting on an explicit "Start over".
+  const isPending =
+    startMutation.isPending || (jobId !== null && (statusQuery.isLoading || statusQuery.data?.status === 'pending'))
+
   return {
     jobId,
     status: statusQuery.data,
     isLoadingStatus: statusQuery.isLoading,
+    isPending,
     start: startMutation.mutate,
     isStarting: startMutation.isPending,
     startError: startMutation.error,

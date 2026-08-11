@@ -8,6 +8,21 @@ export interface ValidationIssue {
   path: string | null
 }
 
+export type CategoryStatus = 'pass' | 'warning' | 'error'
+
+export interface CategoryIssue {
+  severity: 'warning' | 'error'
+  message: string
+  path: string | null
+}
+
+export interface ValidationCategory {
+  id: string
+  label: string
+  status: CategoryStatus
+  issues: CategoryIssue[]
+}
+
 export interface SecuritySchemeInfo {
   name: string
   type: string
@@ -36,6 +51,7 @@ export interface ValidateResult {
   score: number
   errors: ValidationIssue[]
   warnings: ValidationIssue[]
+  categories: ValidationCategory[] | null
   summary: ValidationSummary | null
 }
 

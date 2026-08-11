@@ -41,13 +41,17 @@ function filenameFromContentDisposition(res: Response, fallback: string): string
 
 export interface ValidateOptions {
   includeTags?: boolean
+  /** Only validate these HTTP methods (comma-joined server-side; case-insensitive). */
   methods?: string[]
+  /** Only validate operations tagged with at least one of these (case-sensitive — matches the spec's own tags). */
+  tags?: string[]
 }
 
 export async function validateSpec(file: File, options: ValidateOptions = {}): Promise<ValidateResult> {
   const params = new URLSearchParams()
-  if (options.includeTags) params.set('tags', 'true')
+  if (options.includeTags) params.set('includeTags', 'true')
   if (options.methods?.length) params.set('methods', options.methods.join(','))
+  if (options.tags?.length) params.set('tags', options.tags.join(','))
 
   const query = params.toString() ? `?${params.toString()}` : ''
   const res = await fetch(`${API_BASE_URL}/validate${query}`, {
