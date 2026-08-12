@@ -25,10 +25,11 @@ export function Generate() {
 
   const handleValidate = (file: File, filters: ValidateFilters) => {
     validateMutation.mutate(
-      // includeTags is always on, independent of any tag filter, so the tag
-      // checkboxes in SpecUploader have the full catalog to offer even once
-      // you've narrowed validation down to a subset of them.
-      { file, options: { includeTags: true, ...filters } },
+      // includeTags/includeSchemas are always on, independent of any tag
+      // filter, so the tag checkboxes in SpecUploader have the full catalog
+      // to offer even once you've narrowed validation down to a subset of
+      // them, and the summary can always show the full schema list.
+      { file, options: { includeTags: true, includeSchemas: true, ...filters } },
       {
         onError: (err) => {
           toast.error(err instanceof ApiError ? err.message : 'Validation failed.')

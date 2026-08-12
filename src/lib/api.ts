@@ -41,6 +41,7 @@ function filenameFromContentDisposition(res: Response, fallback: string): string
 
 export interface ValidateOptions {
   includeTags?: boolean
+  includeSchemas?: boolean
   /** Only validate these HTTP methods (comma-joined server-side; case-insensitive). */
   methods?: string[]
   /** Only validate operations tagged with at least one of these (case-sensitive — matches the spec's own tags). */
@@ -50,6 +51,7 @@ export interface ValidateOptions {
 export async function validateSpec(file: File, options: ValidateOptions = {}): Promise<ValidateResult> {
   const params = new URLSearchParams()
   if (options.includeTags) params.set('includeTags', 'true')
+  if (options.includeSchemas) params.set('includeSchemas', 'true')
   if (options.methods?.length) params.set('methods', options.methods.join(','))
   if (options.tags?.length) params.set('tags', options.tags.join(','))
 

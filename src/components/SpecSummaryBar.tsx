@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import type { SecuritySchemeInfo, ValidationSummary } from '@/lib/types'
+import type { SchemaInfo, SecuritySchemeInfo, ValidationSummary } from '@/lib/types'
 import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
@@ -48,6 +48,30 @@ function AuthMethodsList({ schemes }: { schemes: SecuritySchemeInfo[] }) {
   )
 }
 
+// One collapsible entry per schema, nested inside the outer "Schemas (N)"
+// list, so the pretty-printed JSON only takes up space once expanded —
+// keeps a spec with dozens of schemas from turning the summary into a wall
+// of text by default.
+function SchemasList({ schemas }: { schemas: SchemaInfo[] | undefined }) {
+  if (!schemas || schemas.length === 0) return null
+
+  return (
+    <details className="text-sm">
+      <summary className="cursor-pointer select-none font-medium">Schemas ({schemas.length})</summary>
+      <div className="mt-3 flex flex-col gap-1">
+        {schemas.map((schema) => (
+          <details key={schema.name} className="rounded-lg border px-3 py-2">
+            <summary className="cursor-pointer select-none font-mono text-sm">{schema.name}</summary>
+            <pre className="bg-muted mt-2 max-h-64 overflow-auto rounded-md p-3 font-mono text-xs">
+              {JSON.stringify(schema.definition, null, 2)}
+            </pre>
+          </details>
+        ))}
+      </div>
+    </details>
+  )
+}
+
 export function SpecSummaryBar({ summary }: { summary: ValidationSummary }) {
   const endpointTotal = Object.values(summary.endpoints).reduce((sum: number, list) => sum + (list?.length ?? 0), 0)
 
@@ -86,9 +110,10 @@ export function SpecSummaryBar({ summary }: { summary: ValidationSummary }) {
             value={endpointTotal}
           />
         </div>
-        {(endpointTotal > 0 || summary.securitySchemes.length > 0) && <Separator />}
+        {(endpointTotal > 0 || summary.securitySchemes.length > 0 || (summary.schemas?.length ?? 0) > 0) && <Separator />}
         {endpointTotal > 0 && <EndpointsByMethod endpoints={summary.endpoints} />}
         <AuthMethodsList schemes={summary.securitySchemes} />
+        <SchemasList schemas={summary.schemas} />
       </CardContent>
     </Card>
   )

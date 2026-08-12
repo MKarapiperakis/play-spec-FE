@@ -33,6 +33,12 @@ export interface EndpointInfo {
   summary: string | null
 }
 
+export interface SchemaInfo {
+  name: string
+  /** The dereferenced JSON Schema, with any circular self-reference replaced by the string "[Circular reference]". */
+  definition: unknown
+}
+
 export interface ValidationSummary {
   title: string | null
   specVersion: string | null
@@ -42,6 +48,7 @@ export interface ValidationSummary {
   securitySchemes: SecuritySchemeInfo[]
   endpoints: Partial<Record<'get' | 'post' | 'put' | 'patch' | 'delete', EndpointInfo[]>>
   tags?: { name: string; description: string | null }[]
+  schemas?: SchemaInfo[]
 }
 
 export interface ValidateResult {
