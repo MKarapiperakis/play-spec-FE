@@ -100,3 +100,25 @@ export async function getQueueStats(): Promise<QueueStats> {
   if (!res.ok) throw await errorFromResponse(res)
   return res.json()
 }
+
+export interface FeedbackPayload {
+  fullName: string
+  /** Optional — if given, the site owner's reply goes straight to it. */
+  email?: string
+  message: string
+  /**
+   * Honeypot: always left empty by a real visitor since the field is
+   * visually hidden. A bot that blindly fills every input won't know that,
+   * so a non-empty value here signals spam server-side.
+   */
+  website?: string
+}
+
+export async function submitFeedback(payload: FeedbackPayload): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/feedback`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  if (!res.ok) throw await errorFromResponse(res)
+}

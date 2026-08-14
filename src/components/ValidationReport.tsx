@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import type { CategoryStatus, Severity, ValidateResult, ValidationCategory } from '@/lib/types'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -32,6 +33,22 @@ const CATEGORY_BADGE: Record<CategoryStatus, { variant: 'default' | 'secondary' 
   error: { variant: 'destructive' },
 }
 
+// Mirrors the five checks in src/parser/validateSpec.js's buildCategories —
+// keyed by the same category id the backend sends, so a category the
+// backend adds later just silently gets no tooltip instead of breaking.
+const CATEGORY_DESCRIPTIONS: Record<string, string> = {
+  'schema-structure':
+    "Checks the spec's overall structural validity against the OpenAPI/JSON Schema, and whether there's anything (GET/POST/PUT/PATCH/DELETE operations) to generate tests from at all.",
+  'security-definitions':
+    'Flags security scheme types the generator can\'t authenticate with, and operations whose "security" references a scheme name that was never declared under components.securitySchemes — a common typo.',
+  'response-examples':
+    "Flags operations whose success response has no example or schema to build a response-shape assertion from. The generated test still runs, it just only checks the HTTP status code.",
+  'path-parameters':
+    'Flags path template placeholders (e.g. the "{id}" in "/pets/{id}") that aren\'t declared in the parameters list. This one blocks generation — the resulting test can never pass.',
+  'generation-readiness':
+    'Lower-stakes checks that affect output quality rather than correctness: no base URL declared, operations missing a summary, and tags used but not listed in the spec\'s own top-level "tags" catalog.',
+}
+
 function statusLabel(category: ValidationCategory): string {
   if (category.status === 'pass') return 'Passed'
   const n = category.issues.length
@@ -42,11 +59,47 @@ function statusLabel(category: ValidationCategory): string {
 function CategoryRow({ category }: { category: ValidationCategory }) {
   const { Icon, className } = CATEGORY_ICON[category.status]
   const badge = CATEGORY_BADGE[category.status]
+  const itemRef = useRef<HTMLDivElement>(null)
+
+  const description = CATEGORY_DESCRIPTIONS[category.id]
+
+  // Radix's Accordion updates data-state synchronously with its own click
+  // handling, so checking it a tick later here only fires once the category
+  // just opened — never on close, and never for the info-icon click above
+  // (which already stopped its own propagation before this ever runs).
+  const scrollIntoViewIfJustOpened = () => {
+    setTimeout(() => {
+      if (itemRef.current?.getAttribute('data-state') === 'open') {
+        itemRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' })
+      }
+    }, 0)
+  }
 
   const header = (
     <div className="flex flex-1 items-center gap-3">
       <Icon className={cn('size-4 shrink-0', className)} />
       <span className="font-medium">{category.label}</span>
+      {description && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            {/* A <span role="button">, not a real <button> — this sits
+                inside the accordion trigger's own <button>, and a <button>
+                can't legally nest inside another one. stopPropagation still
+                matters regardless of element type: without it, a click here
+                would also toggle the category open/closed. */}
+            <span
+              role="button"
+              tabIndex={0}
+              onClick={(e) => e.stopPropagation()}
+              className="text-muted-foreground hover:text-foreground cursor-default"
+              aria-label={`What does "${category.label}" check?`}
+            >
+              <Info className="size-3.5" />
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>{description}</TooltipContent>
+        </Tooltip>
+      )}
       <Badge variant={badge.variant} className={cn('ml-auto mr-2', badge.className)}>
         {statusLabel(category)}
       </Badge>
@@ -62,8 +115,10 @@ function CategoryRow({ category }: { category: ValidationCategory }) {
   }
 
   return (
-    <AccordionItem value={category.id} className="rounded-lg border px-4 not-last:border-b">
-      <AccordionTrigger className="hover:no-underline">{header}</AccordionTrigger>
+    <AccordionItem ref={itemRef} value={category.id} className="rounded-lg border px-4 not-last:border-b">
+      <AccordionTrigger className="hover:no-underline" onClick={scrollIntoViewIfJustOpened}>
+        {header}
+      </AccordionTrigger>
       <AccordionContent>
         <div className="flex flex-col gap-2">
           {category.issues.map((issue, i) => (

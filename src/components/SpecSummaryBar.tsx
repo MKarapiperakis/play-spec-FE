@@ -5,6 +5,8 @@ import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import { EndpointsByMethod } from '@/components/EndpointsByMethod'
 import { IconChip } from '@/components/IconChip'
+import { CopyButton } from '@/components/CopyButton'
+import { scrollIntoViewOnOpen } from '@/lib/utils'
 import { FileText, GitBranch, Share2, ShieldCheck, Tag } from 'lucide-react'
 
 function StatItem({ icon, iconClassName, label, value }: { icon: ReactNode; iconClassName: string; label: string; value: ReactNode }) {
@@ -32,7 +34,7 @@ function AuthMethodsList({ schemes }: { schemes: SecuritySchemeInfo[] }) {
   if (schemes.length === 0) return null
 
   return (
-    <details className="text-sm">
+    <details className="text-sm" onToggle={scrollIntoViewOnOpen}>
       <summary className="cursor-pointer select-none font-medium">Auth methods ({schemes.length})</summary>
       <ul className="mt-3 flex flex-col gap-1">
         {schemes.map((scheme) => (
@@ -56,17 +58,21 @@ function SchemasList({ schemas }: { schemas: SchemaInfo[] | undefined }) {
   if (!schemas || schemas.length === 0) return null
 
   return (
-    <details className="text-sm">
+    <details className="text-sm" onToggle={scrollIntoViewOnOpen}>
       <summary className="cursor-pointer select-none font-medium">Schemas ({schemas.length})</summary>
       <div className="mt-3 flex flex-col gap-1">
-        {schemas.map((schema) => (
-          <details key={schema.name} className="rounded-lg border px-3 py-2">
-            <summary className="cursor-pointer select-none font-mono text-sm">{schema.name}</summary>
-            <pre className="bg-muted mt-2 max-h-64 overflow-auto rounded-md p-3 font-mono text-xs">
-              {JSON.stringify(schema.definition, null, 2)}
-            </pre>
-          </details>
-        ))}
+        {schemas.map((schema) => {
+          const json = JSON.stringify(schema.definition, null, 2)
+          return (
+            <details key={schema.name} className="rounded-lg border px-3 py-2" onToggle={scrollIntoViewOnOpen}>
+              <summary className="flex cursor-pointer select-none items-center gap-2 font-mono text-sm">
+                <span className="flex-1">{schema.name}</span>
+                <CopyButton value={json} label={`Copied "${schema.name}" schema`} />
+              </summary>
+              <pre className="bg-muted mt-2 max-h-64 overflow-auto rounded-md p-3 font-mono text-xs">{json}</pre>
+            </details>
+          )
+        })}
       </div>
     </details>
   )

@@ -68,7 +68,13 @@ export function Home() {
     <main className="mx-auto flex max-w-5xl flex-col gap-8 px-6 py-8">
       <section className="flex flex-col items-center gap-3 text-center">
         <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-          Playwright meets OpenAPI spec
+          {/* Matches the logo's palette: "Play" in the same navy, "Spec" in
+              the same blue. Dark mode swaps the navy for white — the navy
+              itself would be nearly invisible on a dark background, same
+              issue the navbar logo has (see NavBar.tsx). */}
+          <span className="text-[#020b36] dark:text-white">Play</span>
+          <span className="text-neutral-700 dark:text-neutral-400">wright meets OpenAPI</span>
+          <span className="text-[#363ffc]"> Spec</span>
         </h1>
         <p className="text-muted-foreground max-w-2xl text-sm">
           PlaySpec turns any OpenAPI/Swagger document into a ready-to-run Playwright test project.
@@ -85,7 +91,7 @@ export function Home() {
 
       <section>
         <Carousel
-          className="mx-auto w-full max-w-4xl"
+          className="mx-auto w-full max-w-2xl"
           opts={{ loop: true }}
           plugins={[autoplay.current]}
         >

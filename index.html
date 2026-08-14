@@ -2,9 +2,20 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" href="/logo_browser.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>PlaySpec</title>
+    <script>
+      // Applies the "dark" class before first paint, so there's no flash of
+      // the wrong theme while React (and useTheme.tsx's own copy of this
+      // same resolution logic) is still loading. Keep this in sync with
+      // src/hooks/useTheme.tsx if the storage key or fallback ever changes.
+      (function () {
+        var stored = localStorage.getItem('playspec-theme');
+        var isDark = stored === 'dark' || (stored !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        if (isDark) document.documentElement.classList.add('dark');
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { IconChip } from '@/components/IconChip'
-import { cn } from '@/lib/utils'
+import { cn, scrollIntoViewOnOpen } from '@/lib/utils'
 
 const ACCEPTED_EXTENSIONS = ['.yaml', '.yml', '.json']
 
@@ -51,7 +51,7 @@ function toggleInSet<T>(set: Set<T>, value: T): Set<T> {
 // checked — a no-op group (nothing to select) doesn't render at all.
 function SelectAllToggle({ allSelected, onToggle }: { allSelected: boolean; onToggle: () => void }) {
   return (
-    <button type="button" onClick={onToggle} className="text-primary text-xs font-medium hover:underline">
+    <button type="button" onClick={onToggle} className="text-primary cursor-pointer text-xs font-medium hover:underline">
       {allSelected ? 'Clear' : 'Select all'}
     </button>
   )
@@ -141,7 +141,7 @@ export function SpecUploader({
                 e.stopPropagation()
                 setFile(null)
               }}
-              className="text-muted-foreground hover:text-foreground shrink-0"
+              className="text-muted-foreground hover:text-foreground shrink-0 cursor-pointer"
               aria-label="Remove file"
             >
               <X className="size-4" />
@@ -156,7 +156,7 @@ export function SpecUploader({
         )}
       </div>
 
-      <details className="text-sm" open={hasScope}>
+      <details className="text-sm" open={hasScope} onToggle={scrollIntoViewOnOpen}>
         <summary className="cursor-pointer select-none">
           Validate scope {hasScope ? `(${selectedMethods.size + selectedTags.size} selected)` : '(all by default)'}
         </summary>
@@ -217,7 +217,7 @@ export function SpecUploader({
         </div>
       </details>
 
-      <details className="text-sm">
+      <details className="text-sm" onToggle={scrollIntoViewOnOpen}>
         <summary className="cursor-pointer select-none">Options (used by Generate)</summary>
         <div className="mt-3 flex flex-col gap-3">
           <div className="flex flex-col gap-2">
