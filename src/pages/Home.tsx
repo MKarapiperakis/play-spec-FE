@@ -2,6 +2,7 @@ import Autoplay from 'embla-carousel-autoplay'
 import { useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { ImageIcon, Rocket } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import {
@@ -17,6 +18,8 @@ interface Slide {
   description: string
   /** Swap this in for a real screenshot/illustration once available. */
   imageSrc?: string
+  /** Dark-theme counterpart of imageSrc — same shot, re-taken in dark mode rather than just re-colored. */
+  imageSrcDark?: string
 }
 
 const SLIDES: Slide[] = [
@@ -24,29 +27,36 @@ const SLIDES: Slide[] = [
     title: 'From upload to a ready test suite',
     description: 'Upload a spec, validate it, generate — the whole flow in a few clicks.',
     imageSrc: '/workflow.PNG',
+    imageSrcDark: '/workflow_dark.PNG',
   },
   {
     title: 'Know exactly what needs fixing',
     description: 'A category-by-category breakdown — schema, security, responses, params — before you generate anything.',
     imageSrc: '/overview.PNG',
+    imageSrcDark: '/overview_dark.PNG',
   },
   {
     title: 'A real Playwright project, ready to run',
     description: 'Tests, config, env template, README — download the zip and go.',
     imageSrc: '/playwright.PNG',
+    imageSrcDark: '/playwright_dark.PNG',
   },
 ]
 
-function SlidePlaceholder({ imageSrc, title }: { imageSrc?: string; title: string }) {
+function SlidePlaceholder({ imageSrc, imageSrcDark, title }: { imageSrc?: string; imageSrcDark?: string; title: string }) {
   if (imageSrc) {
     // object-contain, not cover — these are screenshots/diagrams with real
     // text in them, so cropping to fill would cut content off; letterboxing
     // is the safer trade-off across their differing aspect ratios. The frame
     // itself is ~4:3 (not 16:9) since that's what all three images actually
     // are — 16:9 was leaving most of the frame as empty letterbox space.
+    // dark:hidden/dark:block: two dedicated screenshots (each theme actually
+    // rendered in that theme, not one CSS-filtered into the other), swapped
+    // by the same "dark" class the rest of dark mode already relies on.
     return (
       <div className="bg-muted flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-lg">
-        <img src={imageSrc} alt={title} className="max-h-full max-w-full object-contain" />
+        <img src={imageSrc} alt={title} className={cn('max-h-full max-w-full object-contain', imageSrcDark && 'dark:hidden')} />
+        {imageSrcDark && <img src={imageSrcDark} alt={title} className="hidden max-h-full max-w-full object-contain dark:block" />}
       </div>
     )
   }
@@ -100,7 +110,7 @@ export function Home() {
               <CarouselItem key={slide.title}>
                 <Card>
                   <CardContent className="flex flex-col gap-4">
-                    <SlidePlaceholder imageSrc={slide.imageSrc} title={slide.title} />
+                    <SlidePlaceholder imageSrc={slide.imageSrc} imageSrcDark={slide.imageSrcDark} title={slide.title} />
                     <div className="text-center">
                       <h3 className="text-lg font-semibold">{slide.title}</h3>
                       <p className="text-muted-foreground text-sm">{slide.description}</p>
