@@ -10,66 +10,104 @@ import { useTitleAlert } from './useTitleAlert'
 // the file itself, same as the old polling path did on its last poll.
 type JobEvent = { status: 'pending' } | { status: 'done'; filename: string } | { status: 'failed'; error: string } | { status: 'not-found' }
 
+const RECONNECT_DELAY_MS = 2000
+
 /**
  * Owns the full lifecycle of a generate job: kicking one off, persisting its
- * id (via useJobId) so a reload resumes watching it, and tracking status via
- * Server-Sent Events (GET /generate/http/:jobId/events) rather than polling
- * — the connection just sits open until the backend pushes a change. A
- * stale/expired job (the server reports "not-found") clears itself
- * automatically.
+ * id + owning token (via useJobId) so a reload resumes watching it, and
+ * tracking status via Server-Sent Events (GET /generate/http/:jobId/events)
+ * rather than polling.
+ *
+ * This deliberately does NOT use the native EventSource API — the backend
+ * now requires the same Bearer token that created the job to read its
+ * status back (see jobStore.js's isOwner), and EventSource has no way to
+ * attach custom headers. fetch() + a manual line reader gives full header
+ * control; unlike useQueueStats.ts's version of this same pattern, this one
+ * stops reconnecting for good once a terminal state (done/failed/not-found)
+ * arrives, matching how the old EventSource-based version closed its
+ * connection at that point too.
  */
 export function useGenerateJob() {
-  const { jobId, setJobId } = useJobId()
+  const { jobId, token, setJob } = useJobId()
   const [status, setStatus] = useState<GenerateJobStatus | undefined>(undefined)
   const [isLoadingStatus, setIsLoadingStatus] = useState(false)
 
   useEffect(() => {
     setStatus(undefined)
-    if (jobId === null) return
+    if (jobId === null || token === null) return
 
     setIsLoadingStatus(true)
     let cancelled = false
-    const source = new EventSource(`${API_BASE_URL}/generate/http/${encodeURIComponent(jobId)}/events`)
 
-    source.onmessage = (event) => {
-      const payload = JSON.parse(event.data) as JobEvent
-      setIsLoadingStatus(false)
-
-      if (payload.status === 'pending') {
-        setStatus({ status: 'pending' })
-        return
-      }
-
-      // Terminal states: the server closes its end right after sending
-      // this, but close our side too so the browser never tries to
-      // auto-reconnect a stream that's intentionally finished.
-      source.close()
-
-      if (payload.status === 'done') {
-        // SSE only signalled completion — fetch the actual zip the normal way.
-        getGenerateJob(jobId)
-          .then((full) => {
-            if (!cancelled) setStatus(full)
+    async function watch() {
+      while (!cancelled) {
+        try {
+          const res = await fetch(`${API_BASE_URL}/generate/http/${encodeURIComponent(jobId as string)}/events`, {
+            headers: { Authorization: `Bearer ${token}` },
           })
-          .catch(() => {
-            if (!cancelled) setStatus({ status: 'failed', error: 'Generated, but the file could not be downloaded. Try again.' })
-          })
-      } else {
-        setStatus(payload)
+          if (!res.ok || !res.body) throw new Error(`SSE connection failed: HTTP ${res.status}`)
+
+          const reader = res.body.getReader()
+          const decoder = new TextDecoder()
+          let buffer = ''
+
+          while (!cancelled) {
+            const { done, value } = await reader.read()
+            if (done) break
+            buffer += decoder.decode(value, { stream: true })
+
+            const frames = buffer.split('\n\n')
+            buffer = frames.pop() ?? ''
+            for (const frame of frames) {
+              const dataLine = frame.split('\n').find((line) => line.startsWith('data: '))
+              if (!dataLine) continue
+              const payload = JSON.parse(dataLine.slice('data: '.length)) as JobEvent
+              if (cancelled) return
+              setIsLoadingStatus(false)
+
+              if (payload.status === 'pending') {
+                setStatus({ status: 'pending' })
+                continue
+              }
+
+              // Terminal: the server closes its end right after sending
+              // this — stop watching entirely rather than looping back to
+              // reconnect, same as the old EventSource version closing itself.
+              if (payload.status === 'done') {
+                getGenerateJob(jobId as string, token as string)
+                  .then((full) => {
+                    if (!cancelled) setStatus(full)
+                  })
+                  .catch(() => {
+                    if (!cancelled) setStatus({ status: 'failed', error: 'Generated, but the file could not be downloaded. Try again.' })
+                  })
+              } else {
+                setStatus(payload)
+              }
+              return
+            }
+          }
+        } catch {
+          // Connection never opened, or dropped mid-stream while still
+          // pending — fall through to the reconnect delay below, same as
+          // EventSource's own built-in retry would have done.
+        }
+        if (!cancelled) await new Promise((resolve) => setTimeout(resolve, RECONNECT_DELAY_MS))
       }
     }
 
+    watch()
     return () => {
       cancelled = true
-      source.close()
     }
-  }, [jobId])
+  }, [jobId, token])
 
   // The job id is only ever a *hint* to reattach to — if the server no
-  // longer knows about it (expired, or never existed), stop tracking it.
+  // longer knows about it (expired, or never existed — and now also "wrong
+  // token", which is reported identically), stop tracking it.
   useEffect(() => {
-    if (status?.status === 'not-found') setJobId(null)
-  }, [status, setJobId])
+    if (status?.status === 'not-found') setJob(null)
+  }, [status, setJob])
 
   useTitleAlert(
     status?.status === 'done'
@@ -82,13 +120,13 @@ export function useGenerateJob() {
   const startMutation = useMutation({
     mutationFn: ({ file, options, generateToken }: { file: File; options?: GenerateOptions; generateToken?: string }) =>
       startGenerate(file, options, generateToken),
-    onSuccess: (result) => {
-      setJobId(result.jobId)
+    onSuccess: (result, variables) => {
+      setJob({ jobId: result.jobId, token: variables.generateToken ?? '' })
     },
   })
 
   const reset = () => {
-    setJobId(null)
+    setJob(null)
     setStatus(undefined)
   }
 

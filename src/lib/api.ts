@@ -101,9 +101,17 @@ export async function startGenerate(file: File, options: GenerateOptions = {}, g
   return res.json()
 }
 
-/** Never throws for a "normal" non-done state (404/pending/failed) — those are all part of the job lifecycle. */
-export async function getGenerateJob(jobId: string): Promise<GenerateJobStatus> {
-  const res = await fetch(`${API_BASE_URL}/generate/http/${encodeURIComponent(jobId)}`)
+/**
+ * `token` must be the same one used to start this job (see jobStore.js's
+ * isOwner) — a mismatched or missing token is indistinguishable from the
+ * job never having existed, so this returns 'not-found' either way. Never
+ * throws for a "normal" non-done state (404/pending/failed) — those are
+ * all part of the job lifecycle.
+ */
+export async function getGenerateJob(jobId: string, token: string): Promise<GenerateJobStatus> {
+  const res = await fetch(`${API_BASE_URL}/generate/http/${encodeURIComponent(jobId)}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
 
   if (res.status === 404) return { status: 'not-found' }
   if (res.status === 202) return { status: 'pending' }
