@@ -3,6 +3,19 @@ import type { GenerateJobStatus, GenerateStartResult, QueueStats, ValidateResult
 export const API_BASE_URL: string =
   import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:4000/play-spec/api'
 
+// /validate, /feedback, /queue, and /queue/events all require this — see
+// src/middlewares/basicAuth.js on the backend. Baked in at build time like
+// any other VITE_* var, which means it ships inside this bundle and is
+// readable by anyone who opens devtools: this stops drive-by
+// bots/scanners hitting the raw API, not a determined visitor of the site.
+const BASIC_AUTH_USER = import.meta.env.VITE_BASIC_AUTH_USER as string | undefined
+const BASIC_AUTH_PASS = import.meta.env.VITE_BASIC_AUTH_PASS as string | undefined
+
+export function basicAuthHeaders(): Record<string, string> {
+  if (!BASIC_AUTH_USER || !BASIC_AUTH_PASS) return {}
+  return { Authorization: `Basic ${btoa(`${BASIC_AUTH_USER}:${BASIC_AUTH_PASS}`)}` }
+}
+
 /** Thrown for any non-2xx response; carries the HTTP status so callers can branch on it (409, 503, ...). */
 export class ApiError extends Error {
   status: number
@@ -58,6 +71,7 @@ export async function validateSpec(file: File, options: ValidateOptions = {}): P
   const query = params.toString() ? `?${params.toString()}` : ''
   const res = await fetch(`${API_BASE_URL}/validate${query}`, {
     method: 'POST',
+    headers: basicAuthHeaders(),
     body: specFormData(file, {}),
   })
   if (!res.ok) throw await errorFromResponse(res)
@@ -69,9 +83,18 @@ export interface GenerateOptions {
   baseUrl?: string
 }
 
-export async function startGenerate(file: File, options: GenerateOptions = {}): Promise<GenerateStartResult> {
+/**
+ * `generateToken` is the JWT validateSpec() returns (ValidateResult.generateToken)
+ * — /generate/http requires either that or a pre-shared API key (which this
+ * app's UI never holds; that layer is for external callers integrating
+ * directly). Omitting it here just means the backend will reject the
+ * request with 401, which is why Generate.tsx keeps the button disabled
+ * until a token exists rather than letting this call happen at all.
+ */
+export async function startGenerate(file: File, options: GenerateOptions = {}, generateToken?: string): Promise<GenerateStartResult> {
   const res = await fetch(`${API_BASE_URL}/generate/http`, {
     method: 'POST',
+    headers: generateToken ? { Authorization: `Bearer ${generateToken}` } : {},
     body: specFormData(file, { projectName: options.projectName, baseUrl: options.baseUrl }),
   })
   if (!res.ok) throw await errorFromResponse(res)
@@ -96,7 +119,7 @@ export async function getGenerateJob(jobId: string): Promise<GenerateJobStatus> 
 }
 
 export async function getQueueStats(): Promise<QueueStats> {
-  const res = await fetch(`${API_BASE_URL}/queue`)
+  const res = await fetch(`${API_BASE_URL}/queue`, { headers: basicAuthHeaders() })
   if (!res.ok) throw await errorFromResponse(res)
   return res.json()
 }
@@ -117,7 +140,7 @@ export interface FeedbackPayload {
 export async function submitFeedback(payload: FeedbackPayload): Promise<void> {
   const res = await fetch(`${API_BASE_URL}/feedback`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...basicAuthHeaders() },
     body: JSON.stringify(payload),
   })
   if (!res.ok) throw await errorFromResponse(res)

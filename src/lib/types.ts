@@ -60,6 +60,8 @@ export interface ValidateResult {
   warnings: ValidationIssue[]
   categories: ValidationCategory[] | null
   summary: ValidationSummary | null
+  /** Short-lived Bearer token required by POST /generate/http — absent if the backend has no GENERATE_JWT_SECRET configured. */
+  generateToken?: string
 }
 
 export interface GenerateStartResult {

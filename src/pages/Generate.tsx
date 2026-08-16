@@ -40,7 +40,7 @@ export function Generate() {
 
   const handleGenerate = (file: File, options: { projectName?: string; baseUrl?: string }) => {
     generateJob.start(
-      { file, options },
+      { file, options, generateToken: validateMutation.data?.generateToken },
       {
         onError: (err) => {
           if (err instanceof ApiError && err.status === 409) {
@@ -63,6 +63,13 @@ export function Generate() {
   const availableTags = validateMutation.data?.summary?.tags?.map((t) => t.name) ?? []
   const hasValidation = validateMutation.isPending || !!validateMutation.data
   const severityHeader = validateMutation.data ? SEVERITY_HEADER[validateMutation.data.severity] : null
+
+  // The backend requires a token /validate hands back (see
+  // generateAuth.js) — Generate can't succeed without one, so the button
+  // stays locked (with an explanatory tooltip) until a validate call has
+  // actually completed, rather than letting the click fail with a 401.
+  const generateToken = validateMutation.data?.generateToken
+  const generateLocked = !generateToken
 
   const uploadCard = (
     <Card>
@@ -87,6 +94,7 @@ export function Generate() {
           isValidating={validateMutation.isPending}
           isGenerating={generateJob.isStarting}
           generateDisabled={generateJob.isPending}
+          generateLocked={generateLocked}
           availableTags={availableTags}
         />
         {hasJob && (

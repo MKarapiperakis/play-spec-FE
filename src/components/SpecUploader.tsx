@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { IconChip } from '@/components/IconChip'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn, scrollIntoViewOnOpen } from '@/lib/utils'
 
 const ACCEPTED_EXTENSIONS = ['.yaml', '.yml', '.json']
@@ -36,6 +37,8 @@ interface SpecUploaderProps {
   isValidating: boolean
   isGenerating: boolean
   generateDisabled: boolean
+  /** True until a Validate call has completed — the backend requires a token /validate returns, so Generate can't succeed before then. */
+  generateLocked: boolean
   /** Populated from the previous validate response's summary.tags, once one exists. */
   availableTags: string[]
 }
@@ -63,6 +66,7 @@ export function SpecUploader({
   isValidating,
   isGenerating,
   generateDisabled,
+  generateLocked,
   availableTags,
 }: SpecUploaderProps) {
   const [file, setFile] = useState<File | null>(null)
@@ -241,10 +245,29 @@ export function SpecUploader({
           {isValidating ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}
           {isValidating ? 'Validating…' : 'Validate'}
         </Button>
-        <Button type="button" onClick={handleGenerate} disabled={!file || isGenerating || generateDisabled}>
-          {isGenerating ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
-          {isGenerating ? 'Starting…' : 'Generate Tests'}
-        </Button>
+        {generateLocked ? (
+          // A disabled <button> has pointer-events: none (see button.tsx),
+          // so it never receives the hover that would open a Tooltip
+          // attached directly to it — wrapping it in a plain (non-disabled)
+          // span, and putting the tooltip trigger on that instead, is the
+          // standard workaround.
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span tabIndex={0} className="inline-flex">
+                <Button type="button" disabled className="pointer-events-none">
+                  <Sparkles className="size-4" />
+                  Generate Tests
+                </Button>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>Validate your spec first to unlock Generate.</TooltipContent>
+          </Tooltip>
+        ) : (
+          <Button type="button" onClick={handleGenerate} disabled={!file || isGenerating || generateDisabled}>
+            {isGenerating ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
+            {isGenerating ? 'Starting…' : 'Generate Tests'}
+          </Button>
+        )}
       </div>
     </div>
   )

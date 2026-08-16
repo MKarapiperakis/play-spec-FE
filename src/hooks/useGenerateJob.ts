@@ -80,8 +80,8 @@ export function useGenerateJob() {
   )
 
   const startMutation = useMutation({
-    mutationFn: ({ file, options }: { file: File; options?: GenerateOptions }) =>
-      startGenerate(file, options),
+    mutationFn: ({ file, options, generateToken }: { file: File; options?: GenerateOptions; generateToken?: string }) =>
+      startGenerate(file, options, generateToken),
     onSuccess: (result) => {
       setJobId(result.jobId)
     },

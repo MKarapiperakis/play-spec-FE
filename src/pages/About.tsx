@@ -30,6 +30,10 @@ export function About() {
           <CardTitle>Feedback</CardTitle>
           <CardDescription>
             Found a bug, have a feature idea, or just want to say hi? Send a message below.
+            <br />
+            <br />
+            Want to call the test-generation endpoint directly from your own code instead of the
+            UI? Mention that here, we can issue an API key for direct integration.
           </CardDescription>
         </CardHeader>
         <CardContent>
